@@ -2,6 +2,18 @@
 
 package apinext
 
+type BypassCodeResponseJson struct {
+	// Dash-separated "human readable" form of bypass code.
+	Code string `json:"code"`
+
+	// Hex-encoded PBKDF2 derived hash of bypass code. E.g. for use in the Apple DEP
+	// API when Activation Locking a device.
+	Hash string `json:"hash"`
+
+	// Hex-encoded raw form of bypass code.
+	Raw string `json:"raw"`
+}
+
 // Error response.
 type ErrorResponseJson struct {
 	// Error string.

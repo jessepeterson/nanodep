@@ -107,7 +107,7 @@ func main() {
 	namesMux.Handle("GET", apinext.NewQueryDEPNamesHandler(storage, logger.With("handler", "query-dep-names")))
 	handleStrippedAPI(namesMux, "/v1/dep_names")
 
-	handleStrippedAPI(api.NewBypassCodeHandler(), endpointALBC)
+	handleStrippedAPI(apinext.NewBypassCodeHandler(logger.With("handler", "bypass-code")), endpointALBC)
 
 	handleStrippedAPI(
 		api.NewMAIDJWTHandler(storage, logger.With("handler", "get-maid-jwt"), uuid.NewString),

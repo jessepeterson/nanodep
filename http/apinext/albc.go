@@ -1,25 +1,18 @@
-package api
+package apinext
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/micromdm/nanodep/albc"
+
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
-type BypassCodeJSON struct {
-	// Raw (hex encoded) form
-	Raw string `json:"raw"`
-	// Dash-separated "human readable" form
-	Code string `json:"code"`
-	// PBKDF2 derived hash of bypass code
-	Hash string `json:"hash"`
-}
-
 // NewBypassCodeHandler returns a utility HTTP handler for working with Apple Activation Lock Bypass Codes.
-func NewBypassCodeHandler() http.HandlerFunc {
+func NewBypassCodeHandler(logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var bc albc.BypassCode
 
@@ -28,52 +21,53 @@ func NewBypassCodeHandler() http.HandlerFunc {
 
 		var err error
 
+		logger := ctxlog.Logger(r.Context(), logger)
+
 		if raw != "" && code != "" {
-			jsonError(w, errors.New("raw or code but not both"))
+			logAndWriteJSONError(logger, w, "validating input", errors.New("raw or code but not both"), http.StatusBadRequest)
 			return
 		} else if raw == "" && code == "" {
 			// no raw or code provided, make a new random code
 			bc, err = albc.New()
 			if err != nil {
-				jsonError(w, err)
+				logAndWriteJSONError(logger, w, "new bypass code", err, http.StatusInternalServerError)
 				return
 			}
 		} else if raw != "" {
 			// decode and use raw value
 			b, err := hex.DecodeString(raw)
 			if err != nil {
-				jsonError(w, err)
+				logAndWriteJSONError(logger, w, "decode raw", err, http.StatusBadRequest)
 				return
 			}
 			bc, err = albc.NewFromBytes(b)
 			if err != nil {
-				jsonError(w, err)
+				logAndWriteJSONError(logger, w, "new from raw", err, http.StatusBadRequest)
 				return
 			}
 		} else if code != "" {
 			// decode the dash-separated "human readable" form
 			bc, err = albc.NewFromCode(code)
 			if err != nil {
-				jsonError(w, err)
+				logAndWriteJSONError(logger, w, "decode code", err, http.StatusBadRequest)
 				return
 			}
 		}
 
-		out := &BypassCodeJSON{Raw: hex.EncodeToString(bc[:])}
+		out := &BypassCodeResponseJson{Raw: hex.EncodeToString(bc[:])}
 
 		out.Code, err = bc.Code()
 		if err != nil {
-			jsonError(w, err)
+			logAndWriteJSONError(logger, w, "create code", err, http.StatusInternalServerError)
 			return
 		}
 
 		out.Hash, err = bc.Hash()
 		if err != nil {
-			jsonError(w, err)
+			logAndWriteJSONError(logger, w, "create hash", err, http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Content-type", "application/json")
-		json.NewEncoder(w).Encode(out)
+		writeJSON(w, out, http.StatusOK, logger)
 	}
 }

@@ -355,8 +355,18 @@ paths:
                 $ref: '#/components/schemas/BypassCodeResponse'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          description: Problem with raw or code input query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
-           $ref: '#/components/responses/JSONAPIError'
+          description: Server error creating or converting bypass codes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     depName:
